@@ -105,11 +105,12 @@ def create_contribution_grid(contributions: list, height: int, total_commits: in
     cells = []
     fall_index = 0
     
-    delay_between = 0.08
-    fall_duration = 1.5
-    pause_at_end = 2.0
+    delay_between = 0.15
+    fall_duration = 2.0
+    pause_at_end = 3.0
     
-    total_cycle = (total_commits * delay_between) + fall_duration + pause_at_end
+    last_fall_start = (total_commits - 1) * delay_between
+    total_cycle = last_fall_start + fall_duration + pause_at_end
     
     for week_idx, week in enumerate(contributions):
         for day_idx, day in enumerate(week):
@@ -120,9 +121,12 @@ def create_contribution_grid(contributions: list, height: int, total_commits: in
             color = COLORS[level]
             
             if level > 0:
-                delay = fall_index * delay_between
+                start_fall = fall_index * delay_between
                 fall_distance = height - y + 50
-                rotation = random.randint(-45, 45)
+                
+                t_start = start_fall / total_cycle
+                t_fallen = (start_fall + fall_duration) / total_cycle
+                t_reappear = (total_cycle - 0.5) / total_cycle
                 
                 cells.append(f'''
                 <rect 
@@ -135,20 +139,18 @@ def create_contribution_grid(contributions: list, height: int, total_commits: in
                 >
                     <animate
                         attributeName="y"
-                        values="{y};{y + fall_distance};{y}"
-                        keyTimes="0;{fall_duration/total_cycle:.4f};1"
+                        values="{y};{y};{y + fall_distance};{y + fall_distance};{y}"
+                        keyTimes="0;{t_start:.4f};{t_fallen:.4f};{t_reappear:.4f};1"
                         dur="{total_cycle}s"
-                        begin="{delay}s"
                         repeatCount="indefinite"
                         calcMode="spline"
-                        keySplines="0.4 0 1 1; 0 0 0.2 1"
+                        keySplines="0 0 1 1; 0.4 0 1 1; 0 0 1 1; 0 0 0.2 1"
                     />
                     <animate
                         attributeName="opacity"
-                        values="1;0;0;1"
-                        keyTimes="0;{fall_duration/total_cycle:.4f};{(total_cycle - 0.3)/total_cycle:.4f};1"
+                        values="1;1;0;0;1"
+                        keyTimes="0;{t_start:.4f};{t_fallen:.4f};{t_reappear:.4f};1"
                         dur="{total_cycle}s"
-                        begin="{delay}s"
                         repeatCount="indefinite"
                     />
                 </rect>
