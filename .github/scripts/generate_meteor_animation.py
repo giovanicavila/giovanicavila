@@ -1,6 +1,4 @@
 import requests
-import random
-import math
 import os
 
 GITHUB_USERNAME = os.getenv("GITHUB_USERNAME", "giovanicavila")
@@ -14,8 +12,16 @@ COLORS = {
     4: "#39d353",
 }
 
-CELL_SIZE = 11
-CELL_GAP = 3
+COLORS_BRIGHT = {
+    0: "#161b22",
+    1: "#196c3a",
+    2: "#2ea44f",
+    3: "#3fb950",
+    4: "#56d364",
+}
+
+CELL_SIZE = 14
+CELL_GAP = 4
 WEEKS_TO_SHOW = 53
 
 
@@ -80,6 +86,7 @@ def fetch_contributions(username: str, token: str) -> list:
 
 
 def generate_sample_data() -> list:
+    import random
     contributions = []
     for week in range(WEEKS_TO_SHOW):
         week_data = []
@@ -98,143 +105,54 @@ def create_contribution_grid(contributions: list) -> str:
     
     for week_idx, week in enumerate(contributions):
         for day_idx, day in enumerate(week):
-            x = week_idx * (CELL_SIZE + CELL_GAP) + 40
-            y = day_idx * (CELL_SIZE + CELL_GAP) + 20
+            x = week_idx * (CELL_SIZE + CELL_GAP) + 50
+            y = day_idx * (CELL_SIZE + CELL_GAP) + 30
             
-            color = COLORS[day["level"]]
-            cell_id = f"cell-{week_idx}-{day_idx}"
+            level = day["level"]
+            color = COLORS[level]
+            bright_color = COLORS_BRIGHT[level]
             
-            cells.append(f'''
+            delay = (week_idx * 0.08) + (day_idx * 0.02)
+            
+            if level > 0:
+                cells.append(f'''
                 <rect 
-                    id="{cell_id}"
                     x="{x}" 
                     y="{y}" 
                     width="{CELL_SIZE}" 
                     height="{CELL_SIZE}" 
                     fill="{color}" 
-                    rx="2"
-                    class="contribution-cell"
-                    data-level="{day['level']}"
+                    rx="3"
+                >
+                    <animate
+                        attributeName="fill"
+                        values="{color};{bright_color};{color}"
+                        dur="4s"
+                        begin="{delay}s"
+                        repeatCount="indefinite"
+                    />
+                </rect>
+                ''')
+            else:
+                cells.append(f'''
+                <rect 
+                    x="{x}" 
+                    y="{y}" 
+                    width="{CELL_SIZE}" 
+                    height="{CELL_SIZE}" 
+                    fill="{color}" 
+                    rx="3"
                 />
-            ''')
+                ''')
     
     return "\n".join(cells)
 
 
-def create_meteor(meteor_id: int, start_x: int, start_y: int, delay: float) -> str:
-    end_x = start_x + 100
-    end_y = start_y + 150
-    duration = random.uniform(1.5, 2.5)
-    size = random.randint(3, 6)
-    
-    return f'''
-    <g id="meteor-{meteor_id}" opacity="0">
-        <line 
-            x1="0" y1="0" 
-            x2="-20" y2="-20"
-            stroke="url(#meteor-gradient)"
-            stroke-width="{size}"
-            stroke-linecap="round"
-            filter="url(#glow)"
-        />
-        <circle cx="0" cy="0" r="{size/2}" fill="#ffd700">
-            <animate
-                attributeName="r"
-                values="{size/2};{size};{size/2}"
-                dur="0.3s"
-                repeatCount="indefinite"
-            />
-        </circle>
-        <animateTransform
-            attributeName="transform"
-            type="translate"
-            from="{start_x},{start_y}"
-            to="{end_x},{end_y}"
-            dur="{duration}s"
-            begin="{delay}s"
-            repeatCount="indefinite"
-        />
-        <animate
-            attributeName="opacity"
-            values="0;1;1;0"
-            keyTimes="0;0.1;0.8;1"
-            dur="{duration}s"
-            begin="{delay}s"
-            repeatCount="indefinite"
-        />
-    </g>
-    '''
-
-
-def create_impact_explosion(explosion_id: int, x: int, y: int, delay: float) -> str:
-    particles = []
-    num_particles = 6
-    
-    for i in range(num_particles):
-        angle = (360 / num_particles) * i
-        dx = math.cos(math.radians(angle)) * 15
-        dy = math.sin(math.radians(angle)) * 15
-        
-        particles.append(f'''
-            <circle cx="{x}" cy="{y}" r="2" fill="#ff6b35" opacity="0">
-                <animate
-                    attributeName="cx"
-                    from="{x}"
-                    to="{x + dx}"
-                    dur="0.5s"
-                    begin="{delay}s"
-                    repeatCount="indefinite"
-                />
-                <animate
-                    attributeName="cy"
-                    from="{y}"
-                    to="{y + dy}"
-                    dur="0.5s"
-                    begin="{delay}s"
-                    repeatCount="indefinite"
-                />
-                <animate
-                    attributeName="opacity"
-                    values="0;1;0"
-                    dur="0.5s"
-                    begin="{delay}s"
-                    repeatCount="indefinite"
-                />
-                <animate
-                    attributeName="r"
-                    from="3"
-                    to="0"
-                    dur="0.5s"
-                    begin="{delay}s"
-                    repeatCount="indefinite"
-                />
-            </circle>
-        ''')
-    
-    return f'<g id="explosion-{explosion_id}">{" ".join(particles)}</g>'
-
-
 def generate_svg(contributions: list) -> str:
-    width = WEEKS_TO_SHOW * (CELL_SIZE + CELL_GAP) + 80
-    height = 7 * (CELL_SIZE + CELL_GAP) + 60
+    width = WEEKS_TO_SHOW * (CELL_SIZE + CELL_GAP) + 100
+    height = 7 * (CELL_SIZE + CELL_GAP) + 80
     
     grid = create_contribution_grid(contributions)
-    
-    meteors = []
-    explosions = []
-    num_meteors = 8
-    
-    for i in range(num_meteors):
-        start_x = random.randint(0, width - 100)
-        start_y = random.randint(-50, -10)
-        delay = random.uniform(0, 5)
-        
-        meteors.append(create_meteor(i, start_x, start_y, delay))
-        
-        impact_x = start_x + 100
-        impact_y = start_y + 150
-        impact_delay = delay + random.uniform(1.5, 2.5)
-        explosions.append(create_impact_explosion(i, impact_x, impact_y, impact_delay))
     
     svg = f'''<?xml version="1.0" encoding="UTF-8"?>
 <svg 
@@ -244,29 +162,15 @@ def generate_svg(contributions: list) -> str:
     xmlns="http://www.w3.org/2000/svg"
 >
     <defs>
-        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="3" result="blur"/>
-            <feMerge>
-                <feMergeNode in="blur"/>
-                <feMergeNode in="SourceGraphic"/>
-            </feMerge>
-        </filter>
-        
-        <linearGradient id="meteor-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#ffd700;stop-opacity:1" />
-            <stop offset="50%" style="stop-color:#ff6b35;stop-opacity:0.8" />
-            <stop offset="100%" style="stop-color:#ff6b35;stop-opacity:0" />
-        </linearGradient>
-        
         <linearGradient id="bg-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" style="stop-color:#0d1117" />
             <stop offset="100%" style="stop-color:#161b22" />
         </linearGradient>
     </defs>
     
-    <rect width="100%" height="100%" fill="url(#bg-gradient)" rx="6"/>
+    <rect width="100%" height="100%" fill="url(#bg-gradient)" rx="8"/>
     
-    <text x="40" y="15" fill="#8b949e" font-size="11" font-family="Arial, sans-serif">
+    <text x="50" y="22" fill="#8b949e" font-size="12" font-family="Arial, sans-serif">
         Contributions
     </text>
     
@@ -274,22 +178,14 @@ def generate_svg(contributions: list) -> str:
         {grid}
     </g>
     
-    <g id="meteors">
-        {"".join(meteors)}
-    </g>
-    
-    <g id="explosions">
-        {"".join(explosions)}
-    </g>
-    
-    <g transform="translate({width - 150}, {height - 20})">
-        <text x="0" y="0" fill="#8b949e" font-size="10" font-family="Arial">Less</text>
-        <rect x="30" y="-8" width="10" height="10" fill="{COLORS[0]}" rx="2"/>
-        <rect x="43" y="-8" width="10" height="10" fill="{COLORS[1]}" rx="2"/>
-        <rect x="56" y="-8" width="10" height="10" fill="{COLORS[2]}" rx="2"/>
-        <rect x="69" y="-8" width="10" height="10" fill="{COLORS[3]}" rx="2"/>
-        <rect x="82" y="-8" width="10" height="10" fill="{COLORS[4]}" rx="2"/>
-        <text x="98" y="0" fill="#8b949e" font-size="10" font-family="Arial">More</text>
+    <g transform="translate({width - 170}, {height - 25})">
+        <text x="0" y="0" fill="#8b949e" font-size="11" font-family="Arial">Less</text>
+        <rect x="35" y="-10" width="12" height="12" fill="{COLORS[0]}" rx="3"/>
+        <rect x="51" y="-10" width="12" height="12" fill="{COLORS[1]}" rx="3"/>
+        <rect x="67" y="-10" width="12" height="12" fill="{COLORS[2]}" rx="3"/>
+        <rect x="83" y="-10" width="12" height="12" fill="{COLORS[3]}" rx="3"/>
+        <rect x="99" y="-10" width="12" height="12" fill="{COLORS[4]}" rx="3"/>
+        <text x="118" y="0" fill="#8b949e" font-size="11" font-family="Arial">More</text>
     </g>
 </svg>
 '''
@@ -298,7 +194,7 @@ def generate_svg(contributions: list) -> str:
 
 
 if __name__ == "__main__":
-    print("🌠 Gerando animação de meteoros...")
+    print("✨ Gerando animação...")
     
     contributions = fetch_contributions(GITHUB_USERNAME, GITHUB_TOKEN)
     print(f"✅ {len(contributions)} semanas de contribuições carregadas")
