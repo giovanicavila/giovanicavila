@@ -1,4 +1,5 @@
 import requests
+import random
 import os
 
 GITHUB_USERNAME = os.getenv("GITHUB_USERNAME", "giovanicavila")
@@ -10,14 +11,6 @@ COLORS = {
     2: "#006d32",
     3: "#26a641",
     4: "#39d353",
-}
-
-COLORS_BRIGHT = {
-    0: "#161b22",
-    1: "#196c3a",
-    2: "#2ea44f",
-    3: "#3fb950",
-    4: "#56d364",
 }
 
 CELL_SIZE = 14
@@ -86,7 +79,6 @@ def fetch_contributions(username: str, token: str) -> list:
 
 
 def generate_sample_data() -> list:
-    import random
     contributions = []
     for week in range(WEEKS_TO_SHOW):
         week_data = []
@@ -100,8 +92,9 @@ def generate_sample_data() -> list:
     return contributions
 
 
-def create_contribution_grid(contributions: list) -> str:
+def create_contribution_grid(contributions: list, height: int) -> str:
     cells = []
+    fall_index = 0
     
     for week_idx, week in enumerate(contributions):
         for day_idx, day in enumerate(week):
@@ -110,11 +103,14 @@ def create_contribution_grid(contributions: list) -> str:
             
             level = day["level"]
             color = COLORS[level]
-            bright_color = COLORS_BRIGHT[level]
-            
-            delay = (week_idx * 0.08) + (day_idx * 0.02)
             
             if level > 0:
+                delay = fall_index * 0.15
+                fall_distance = height - y + 50
+                duration = 1.2
+                
+                total_animation = 12
+                
                 cells.append(f'''
                 <rect 
                     x="{x}" 
@@ -125,14 +121,36 @@ def create_contribution_grid(contributions: list) -> str:
                     rx="3"
                 >
                     <animate
-                        attributeName="fill"
-                        values="{color};{bright_color};{color}"
-                        dur="4s"
+                        attributeName="y"
+                        values="{y};{y};{y + fall_distance}"
+                        keyTimes="0;0.7;1"
+                        dur="{duration}s"
+                        begin="{delay}s"
+                        repeatCount="indefinite"
+                        calcMode="spline"
+                        keySplines="0 0 1 1; 0.4 0 1 1"
+                    />
+                    <animate
+                        attributeName="opacity"
+                        values="1;1;0"
+                        keyTimes="0;0.7;1"
+                        dur="{duration}s"
+                        begin="{delay}s"
+                        repeatCount="indefinite"
+                    />
+                    <animate
+                        attributeName="transform"
+                        attributeType="XML"
+                        type="rotate"
+                        values="0 {x + CELL_SIZE/2} {y + CELL_SIZE/2};0 {x + CELL_SIZE/2} {y + CELL_SIZE/2};{random.randint(-30, 30)} {x + CELL_SIZE/2} {y + fall_distance + CELL_SIZE/2}"
+                        keyTimes="0;0.7;1"
+                        dur="{duration}s"
                         begin="{delay}s"
                         repeatCount="indefinite"
                     />
                 </rect>
                 ''')
+                fall_index += 1
             else:
                 cells.append(f'''
                 <rect 
@@ -152,7 +170,7 @@ def generate_svg(contributions: list) -> str:
     width = WEEKS_TO_SHOW * (CELL_SIZE + CELL_GAP) + 100
     height = 7 * (CELL_SIZE + CELL_GAP) + 80
     
-    grid = create_contribution_grid(contributions)
+    grid = create_contribution_grid(contributions, height)
     
     svg = f'''<?xml version="1.0" encoding="UTF-8"?>
 <svg 
@@ -194,7 +212,7 @@ def generate_svg(contributions: list) -> str:
 
 
 if __name__ == "__main__":
-    print("✨ Gerando animação...")
+    print("🧱 Gerando animação de desmoronamento...")
     
     contributions = fetch_contributions(GITHUB_USERNAME, GITHUB_TOKEN)
     print(f"✅ {len(contributions)} semanas de contribuições carregadas")
