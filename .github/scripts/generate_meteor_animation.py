@@ -105,9 +105,9 @@ def create_contribution_grid(contributions: list, height: int) -> str:
             color = COLORS[level]
             
             if level > 0:
-                delay = fall_index * 0.15
+                delay = fall_index * 0.4
                 fall_distance = height - y + 50
-                duration = 1.2
+                duration = 2.5
                 
                 total_animation = 12
                 
