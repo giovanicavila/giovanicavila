@@ -92,9 +92,24 @@ def generate_sample_data() -> list:
     return contributions
 
 
-def create_contribution_grid(contributions: list, height: int) -> str:
+def count_commits(contributions: list) -> int:
+    count = 0
+    for week in contributions:
+        for day in week:
+            if day["level"] > 0:
+                count += 1
+    return count
+
+
+def create_contribution_grid(contributions: list, height: int, total_commits: int) -> str:
     cells = []
     fall_index = 0
+    
+    delay_between = 0.08
+    fall_duration = 1.5
+    pause_at_end = 2.0
+    
+    total_cycle = (total_commits * delay_between) + fall_duration + pause_at_end
     
     for week_idx, week in enumerate(contributions):
         for day_idx, day in enumerate(week):
@@ -105,11 +120,9 @@ def create_contribution_grid(contributions: list, height: int) -> str:
             color = COLORS[level]
             
             if level > 0:
-                delay = fall_index * 0.4
+                delay = fall_index * delay_between
                 fall_distance = height - y + 50
-                duration = 2.5
-                
-                total_animation = 12
+                rotation = random.randint(-45, 45)
                 
                 cells.append(f'''
                 <rect 
@@ -122,29 +135,19 @@ def create_contribution_grid(contributions: list, height: int) -> str:
                 >
                     <animate
                         attributeName="y"
-                        values="{y};{y};{y + fall_distance}"
-                        keyTimes="0;0.7;1"
-                        dur="{duration}s"
+                        values="{y};{y + fall_distance};{y}"
+                        keyTimes="0;{fall_duration/total_cycle:.4f};1"
+                        dur="{total_cycle}s"
                         begin="{delay}s"
                         repeatCount="indefinite"
                         calcMode="spline"
-                        keySplines="0 0 1 1; 0.4 0 1 1"
+                        keySplines="0.4 0 1 1; 0 0 0.2 1"
                     />
                     <animate
                         attributeName="opacity"
-                        values="1;1;0"
-                        keyTimes="0;0.7;1"
-                        dur="{duration}s"
-                        begin="{delay}s"
-                        repeatCount="indefinite"
-                    />
-                    <animate
-                        attributeName="transform"
-                        attributeType="XML"
-                        type="rotate"
-                        values="0 {x + CELL_SIZE/2} {y + CELL_SIZE/2};0 {x + CELL_SIZE/2} {y + CELL_SIZE/2};{random.randint(-30, 30)} {x + CELL_SIZE/2} {y + fall_distance + CELL_SIZE/2}"
-                        keyTimes="0;0.7;1"
-                        dur="{duration}s"
+                        values="1;0;0;1"
+                        keyTimes="0;{fall_duration/total_cycle:.4f};{(total_cycle - 0.3)/total_cycle:.4f};1"
+                        dur="{total_cycle}s"
                         begin="{delay}s"
                         repeatCount="indefinite"
                     />
@@ -170,7 +173,8 @@ def generate_svg(contributions: list) -> str:
     width = WEEKS_TO_SHOW * (CELL_SIZE + CELL_GAP) + 100
     height = 7 * (CELL_SIZE + CELL_GAP) + 80
     
-    grid = create_contribution_grid(contributions, height)
+    total_commits = count_commits(contributions)
+    grid = create_contribution_grid(contributions, height, total_commits)
     
     svg = f'''<?xml version="1.0" encoding="UTF-8"?>
 <svg 
